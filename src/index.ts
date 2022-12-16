@@ -1,12 +1,11 @@
-import express, { Express, Request, Response } from 'express'
+import express, { Express, Request, Response, NextFunction } from 'express'
 import cors from 'cors'
 import { v4 } from 'uuid'
-import { getFips } from 'crypto'
+import { retornaIndiceDoGrowdever, verificaSeHaGrowdevers } from './middlewares'
 
 const server = express()
 
 server.use(cors())
-
 server.use(express.json())
 
 interface IGrowdever {
@@ -16,7 +15,7 @@ interface IGrowdever {
     skills?: string[]
 }
 
-interface RespostaPadrao {
+export interface RespostaPadrao {
     sucesso: boolean,
     mensagem: string,
     dados: any
@@ -32,15 +31,15 @@ class Growdever implements IGrowdever {
     }
 }
 
-let Growdevers: Growdever[] = []
+export let Growdevers: Growdever[] = []
 
 // ============== LISTAR GROWDEVERS
-server.get('/growdevers', (req: Request, res: Response) => {
-    if(Growdevers.length === 0) return res.status(404).json({
-        sucesso: false,
-        mensagem: "Não foi localizado nenhum growdever",
-        dados: null
-    } as RespostaPadrao)
+server.get('/growdevers', verificaSeHaGrowdevers, (req: Request, res: Response) => {
+    // if(Growdevers.length === 0) return res.status(404).json({
+    //     sucesso: false,
+    //     mensagem: "Não foi localizado nenhum growdever",
+    //     dados: null
+    // } as RespostaPadrao)
 
     res.status(200).json({
         sucesso: true,
@@ -81,17 +80,8 @@ server.post('/growdevers', (req: Request, res: Response) => {
 
 
 // ============== ALTERAR GROWDEVER
-server.put('/growdevers/:id', (req: Request, res: Response) => {
-    const { id } = req.params
-    const { nome, curso } = req.body
-
-    const indice = Growdevers.findIndex((gd) => gd.id === id)
-
-    if(indice === -1) return res.status(404).json({
-        sucesso: false,
-        mensagem: "Growdever não localizado",
-        dados: null
-    } as RespostaPadrao)
+server.put('/growdevers/:id', retornaIndiceDoGrowdever, (req: Request, res: Response) => {
+    const { nome, curso, indice } = req.body
 
     if(nome) Growdevers[indice].nome = nome.toString();
     if(curso) Growdevers[indice].curso = curso.toString();
@@ -112,17 +102,8 @@ server.put('/growdevers/:id', (req: Request, res: Response) => {
 
 
 // ============== CRIAR SKILL
-server.post('/growdevers/:id', (req: Request, res: Response) => {
-    const { id } = req.params
-    const { skill } = req.body
-
-    const indice = Growdevers.findIndex((gd) => gd.id === id)
-
-    if(indice === -1) return res.status(404).json({
-        sucesso: false,
-        mensagem: "Growdever não localizado",
-        dados: null
-    } as RespostaPadrao)
+server.post('/growdevers/:id', retornaIndiceDoGrowdever, (req: Request, res: Response) => {
+    const { indice, skill } = req.body
 
     if(!skill) return res.status(404).json({
         sucesso: false,
@@ -140,16 +121,9 @@ server.post('/growdevers/:id', (req: Request, res: Response) => {
 })
 
 // ============== DELETAR SKILL
-server.delete('/growdevers/:id/:skill', (req: Request, res: Response) => {
-    const { id, skill } = req.params
-
-    const indice = Growdevers.findIndex((gd) => gd.id === id)
-
-    if(indice === -1) return res.status(404).json({
-        sucesso: false,
-        mensagem: "Growdever não localizado",
-        dados: null
-    } as RespostaPadrao)
+server.delete('/growdevers/:id/:skill', retornaIndiceDoGrowdever, (req: Request, res: Response) => {
+    const { skill } = req.params
+    const { indice } = req.body
 
     if(!skill) return res.status(404).json({
         sucesso: false,
@@ -175,17 +149,8 @@ server.delete('/growdevers/:id/:skill', (req: Request, res: Response) => {
 })
 
 
-server.delete('/growdevers/:id', (req: Request, res: Response) => {
-    const { id } = req.params
-
-    const indice = Growdevers.findIndex((gd) => gd.id === id)
-
-    if(indice === -1) return res.status(404).json({
-        sucesso: false,
-        mensagem: "Growdever não localizado",
-        dados: null
-    } as RespostaPadrao)
-
+server.delete('/growdevers/:id', retornaIndiceDoGrowdever, (req: Request, res: Response) => {
+    const { indice } = req.body
     const gdExcluido = Growdevers[indice]
 
     Growdevers.splice(indice, 1)
@@ -197,6 +162,5 @@ server.delete('/growdevers/:id', (req: Request, res: Response) => {
     } as RespostaPadrao)
 
 })
-
 
 server.listen(3000, () => console.log('Rodando'))
